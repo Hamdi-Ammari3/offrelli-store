@@ -36,7 +36,11 @@ const page = () => {
             localStorage.setItem('storeLoggedIn', true)
             localStorage.setItem('storeName', userData?.name)
             localStorage.setItem('storeID', shopId)
-            router.push('/')
+
+            setTimeout(() => {
+                router.push("/");
+            }, 300);
+
         } else {
             setError('يرجى التثبت من المعلومات المدرجة')
         }
@@ -51,7 +55,7 @@ const page = () => {
         <div className='login-container'>
             <div className='login-box'>
                 <div className='form-title-box'>
-                    <h1>Offrini</h1>
+                    <h1>Offrelli</h1>
                 </div>
                 {error && <p style={{color:'red'}}>{error}</p>}
                 <div className='login-form-box'>
@@ -77,11 +81,18 @@ const page = () => {
                                 />
                             </div>
                         ) : (
-                            <button onClick={handleLogin}>دخول</button>
+                            <button onClick={handleLogin}>connexion</button>
                         )}
                     </form>
                 </div>
             </div>
+
+            {loading && (
+                <div className="page-loading-overlay">
+                    <ClipLoader size={40} color="#000" />
+                    <p>se connecter ...</p>
+                </div>
+            )}
         </div>
     )
 }

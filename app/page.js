@@ -32,6 +32,7 @@ export default function StoreDashboard() {
   const [filterPhone, setFilterPhone] = useState("");
   const [filterRemise, setFilterRemise] = useState("");
   const [filterUsed, setFilterUsed] = useState("all");
+  const [loggingOut, setLoggingOut] = useState(false);
 
   dayjs.locale("ar");
   const router = useRouter()
@@ -49,6 +50,20 @@ export default function StoreDashboard() {
     setStoreName(localStorage.getItem('storeName'))
     setStoreID(localStorage.getItem('storeID'))
   }, [])
+
+  //Logout
+  const handleLogout = () => {
+    setLoggingOut(true);
+
+    // let UI update first
+    setTimeout(() => {
+      localStorage.removeItem('storeLoggedIn')
+      localStorage.removeItem('storeName')
+      localStorage.removeItem('storeID')
+
+      router.push("/login");
+    }, 300);
+  }
 
   //Verify client discount
   const handleVerify = async () => {
@@ -271,9 +286,8 @@ export default function StoreDashboard() {
   };
 
   const qrRef = useRef(null);
-
-  //const baseUrl = 'https://offrelli.com';
-  const baseUrl = 'https://offrelli.netlify.app';
+  const baseUrl = 'https://offrelli.com';
+  //const baseUrl = 'https://offrelli.netlify.app';
 
   const staticQrUrl = storeID ? `${baseUrl}/s/${storeID}` : "";
 
@@ -303,9 +317,29 @@ export default function StoreDashboard() {
 
   return (
     <div className="store-dashboard" dir="rtl">
+
       <header className="store-header">
-        <h1>Offrelli</h1>
+        <div className="header-left">
+          <h1>Offrelli</h1>
+        </div>
+
+        <div className="header-right">
+          <span className="store-name">
+            {storeName}
+          </span>
+
+          <button className="logout-btn" onClick={handleLogout}>
+            déconnexion
+          </button>
+        </div>
       </header>
+
+      {loggingOut && (
+        <div className="page-loading-overlay">
+          <ClipLoader size={40} color="#000" />
+          <p>se déconnecter ...</p>
+        </div>
+      )}
 
       <main className="store-container">
         <div className="tabs">
@@ -343,7 +377,6 @@ export default function StoreDashboard() {
             {!generatedCode ? (
               <div className="generate-row">
                 <input
-                  type="number"
                   placeholder="remise (%)"
                   value={discountAmount}
                   onChange={(e) => setDiscountAmount(e.target.value)}
@@ -467,7 +500,6 @@ export default function StoreDashboard() {
               />
               <input
                 placeholder="Remise %"
-                type="number"
                 value={filterRemise}
                 onChange={(e) => setFilterRemise(e.target.value)}
                 dir="ltr"

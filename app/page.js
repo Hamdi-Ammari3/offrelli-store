@@ -107,7 +107,10 @@ export default function StoreDashboard() {
       }
 
       if (expiredAt && expiredAt < now) {
-        await updateDoc(discountRef, { archived: true });
+        await updateDoc(doc(DB, "discounts", discountDoc.id), {
+          archived: true
+        });
+
         setVerifyResult({
           status: "expired",
           expired_at: expiredAt
@@ -124,6 +127,7 @@ export default function StoreDashboard() {
 
     } catch (error) {
       console.error(error);
+      alert("Une erreur s'est produite. Veuillez réessayer plus tard");
     } finally {
       setLoadingVerify(false);
     }
@@ -144,6 +148,7 @@ export default function StoreDashboard() {
 
     } catch (error) {
       console.error(error);
+      alert("Une erreur s'est produite. Veuillez réessayer plus tard");
     } finally {
       setMarkingAsUsedLoading(false)
     }
@@ -152,7 +157,7 @@ export default function StoreDashboard() {
   //Generate discount code
   const handleGenerate = async () => {
     if (!discountAmount) {
-      alert("يرجى إدخال نسبة التخفيض");
+      alert("Veuillez saisir le pourcentage de remise")
       return;
     }
 
@@ -250,9 +255,24 @@ export default function StoreDashboard() {
 
       const snapshot = await getDocs(q);
 
+      //if (snapshot.empty) {
+        //setClients([]);
+        //setHasMore(false);
+        //return;
+      //}
+
       if (snapshot.empty) {
         setHasMore(false);
+
+        if (!loadMore) {
+          setClients([]); // only clear if first fetch
+        }
+
         return;
+      }
+
+      if (snapshot.docs.length < 20) {
+        setHasMore(false);
       }
 
       const data = snapshot.docs.map(doc => ({
@@ -268,6 +288,7 @@ export default function StoreDashboard() {
 
     } catch (error) {
       console.error(error);
+      alert("Une erreur s'est produite. Veuillez réessayer plus tard");
     } finally {
       setLoadingClients(false);
     }
@@ -329,7 +350,7 @@ export default function StoreDashboard() {
           </span>
 
           <button className="logout-btn" onClick={handleLogout}>
-            déconnexion
+            Déconnexion
           </button>
         </div>
       </header>

@@ -42,10 +42,10 @@ const page = () => {
             }, 300);
 
         } else {
-            setError('يرجى التثبت من المعلومات المدرجة')
+            setError("Vérifiez vos informations d'identification")
         }
         } catch (err) {
-            setError('يرجى التثبت من المعلومات المدرجة')
+            setError("Vérifiez vos informations d'identification")
         }finally {
             setLoading(false)
         }
@@ -57,7 +57,7 @@ const page = () => {
                 <div className='form-title-box'>
                     <h1>Offrelli</h1>
                 </div>
-                {error && <p style={{color:'red'}}>{error}</p>}
+                {error && <p style={{color:'red',fontSize:'14px'}}>{error}</p>}
                 <div className='login-form-box'>
                     <form className='form'>
                         <input 

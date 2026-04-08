@@ -94,7 +94,7 @@ body {
     flex-direction: row-reverse;
     justify-content: center;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
 }
 .store-name {
   color: #000;

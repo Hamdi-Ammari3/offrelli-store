@@ -1,8 +1,7 @@
 "use client";
 import { useState,useRef,useEffect } from "react";
 import {useRouter} from 'next/navigation'
-import { QRCodeCanvas } from "qrcode.react";
-import {collection,query,where,getDocs,updateDoc,doc,addDoc,serverTimestamp,orderBy,limit,startAfter} from "firebase/firestore";
+import {collection,query,where,getDoc,getDocs,updateDoc,doc,addDoc,serverTimestamp,orderBy,limit,startAfter} from "firebase/firestore";
 import { DB } from "../firebaseConfig";
 import { ClipLoader } from "react-spinners";
 import { ImCross } from "react-icons/im";
@@ -17,6 +16,8 @@ export default function StoreDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [storeName,setStoreName] = useState('');
   const [storeID,setStoreID] = useState('');
+  const [cardsLimit, setCardsLimit] = useState(0);
+  const [codesGenerated, setCodesGenerated] = useState(0);
   const [activeTab, setActiveTab] = useState("search");
   const [discountAmount, setDiscountAmount] = useState("");
   const [loadingGenerate, setLoadingGenerate] = useState(false);
@@ -35,7 +36,7 @@ export default function StoreDashboard() {
   const [loggingOut, setLoggingOut] = useState(false);
 
   dayjs.locale("ar");
-  const router = useRouter()
+  const router = useRouter();
 
   // Check if admin is logged in
   useEffect(() => {
@@ -46,9 +47,27 @@ export default function StoreDashboard() {
       return
     }
 
-    setIsAuthenticated(true)
-    setStoreName(localStorage.getItem('storeName'))
-    setStoreID(localStorage.getItem('storeID'))
+    const id = localStorage.getItem('storeID');
+    setStoreID(localStorage.getItem('storeID'));
+    setStoreName(localStorage.getItem('storeName'));
+
+    const fetchStoreData = async () => {
+      try {
+        const storeSnap = await getDoc(doc(DB, "stores", id));
+
+        if (storeSnap.exists()) {
+          const data = storeSnap.data();
+          setCardsLimit(data.cards_limit || 0);
+          setCodesGenerated(data.codes_generated || 0);
+        }
+
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchStoreData();
+    setIsAuthenticated(true);
   }, [])
 
   //Logout
@@ -156,6 +175,11 @@ export default function StoreDashboard() {
 
   //Generate discount code
   const handleGenerate = async () => {
+    if (codesGenerated >= cardsLimit) {
+      alert("وصلت للحد الأقصى متاع الكودات يلزمك تطلب كوارت جدد باش تكمل الخدمة");
+      return;
+    }
+
     if (!discountAmount) {
       alert("Veuillez saisir le pourcentage de remise")
       return;
@@ -201,6 +225,12 @@ export default function StoreDashboard() {
         expired_at:expiry,
         archived:false
       });
+
+      await updateDoc(doc(DB, "stores", storeID), {
+        codes_generated: codesGenerated + 1
+      });
+
+      setCodesGenerated(prev => prev + 1);
 
       setGeneratedCode({
         code: generatedCode,
@@ -255,17 +285,11 @@ export default function StoreDashboard() {
 
       const snapshot = await getDocs(q);
 
-      //if (snapshot.empty) {
-        //setClients([]);
-        //setHasMore(false);
-        //return;
-      //}
-
       if (snapshot.empty) {
         setHasMore(false);
 
         if (!loadMore) {
-          setClients([]); // only clear if first fetch
+          setClients([]);
         }
 
         return;
@@ -279,6 +303,7 @@ export default function StoreDashboard() {
         id: doc.id,
         ...doc.data()
       }));
+
 
       setClients(prev =>
         loadMore ? [...prev, ...data] : data
@@ -306,23 +331,6 @@ export default function StoreDashboard() {
     fetchClients(false);
   };
 
-  const qrRef = useRef(null);
-  const baseUrl = 'https://offrelli.com';
-  //const baseUrl = 'https://offrelli.netlify.app';
-
-  const staticQrUrl = storeID ? `${baseUrl}/s/${storeID}` : "";
-
-  const handleDownloadQR = () => {
-    const canvas = qrRef.current?.querySelector("canvas");
-    if (!canvas) return;
-
-    const url = canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `offrini-${discountAmount}.png`;
-    a.click();
-  };
-
   if (!isAuthenticated) {
     return (
       <div style={{ width:'100vw',height:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -347,6 +355,10 @@ export default function StoreDashboard() {
         <div className="header-right">
           <span className="store-name">
             {storeName}
+          </span>
+
+          <span className="store-name">
+            ({cardsLimit} / {codesGenerated})
           </span>
 
           <button className="logout-btn" onClick={handleLogout}>
@@ -383,13 +395,6 @@ export default function StoreDashboard() {
             onClick={() => setActiveTab("clients")}
           >
             mes clients
-          </button>
-
-          <button
-            className={activeTab === "qrCode" ? "tab active" : "tab"}
-            onClick={() => setActiveTab("qrCode")}
-          >
-            mon code QR 
           </button>
         </div>
 
@@ -607,8 +612,38 @@ export default function StoreDashboard() {
             )}
           </section>
         )}
+      </main>
+    </div>
+  );
+}
 
-        {activeTab === "qrCode" && (
+/*
+
+  const qrRef = useRef(null);
+  const baseUrl = 'https://offrelli.com';
+  //const baseUrl = 'https://offrelli.netlify.app';
+
+  const staticQrUrl = storeID ? `${baseUrl}/s/${storeID}` : "";
+
+  const handleDownloadQR = () => {
+    const canvas = qrRef.current?.querySelector("canvas");
+    if (!canvas) return;
+
+    const url = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `offrini-${discountAmount}.png`;
+    a.click();
+  };
+
+          <button
+            className={activeTab === "qrCode" ? "tab active" : "tab"}
+            onClick={() => setActiveTab("qrCode")}
+          >
+            mon code QR 
+          </button>
+
+          {activeTab === "qrCode" && (
           <section className="card">
             {storeID ? (
               <div className="qr-box">
@@ -630,7 +665,4 @@ export default function StoreDashboard() {
             )}
           </section>
         )}
-      </main>
-    </div>
-  );
-}
+*/
